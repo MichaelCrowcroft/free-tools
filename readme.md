@@ -12,11 +12,11 @@ Once you have everything installed you can run `npm run dev` to start the Tailwi
 
 ### Project Structure
 
-There are two folders in the project, `/src` and `/dist`. `/src` is the working folder that all of our components are in the `/src/components` folder. Tailwind styles are contained in the `/src/styles` folder. **If you want to edit the CSS file directly, only make changes to the `input.css` file. `output.css` is a generated Tailwind CSS file.
+There are two folders in the project, `/src` and `/dist`. `/src` is the working folder that all of our components are in the `/src` folder. Tailwind styles are contained in the `/src/styles` folder. **If you want to edit the CSS file directly, only make changes to the `input.css` file. `output.css` is a generated Tailwind CSS file.
 
 When you run `npm run dev` or `npm run build` the components and CSS in the `src` folder are bundled into individual components in the `/dist` folder. We **never** edit anything in the dist folder directly, but this *is* where we reference files if we want to import them.
 
-For every component in the `/src/components` directory we generate one corresponding component in the dist folder (and when we build for production we also generate a map file).
+For every component in the `/src` directory we generate one corresponding component in the dist folder (and when we build for production we also generate a map file).
 
 ### Viewing the Components
 
