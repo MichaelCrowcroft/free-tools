@@ -24,7 +24,7 @@ In the project root you will have an index.html file, when you run `npm run dev`
 
 You can simply import components from the `/dist` folder, and then rerence them in the `index.html` file. For example, the following will import and then display the Hello World component.
 
-```
+``` HTML
 <!DOCTYPE html>
 <html lang="en">
     <head>

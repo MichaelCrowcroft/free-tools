@@ -16,7 +16,7 @@ class CalculatorContainer extends LitElement {
     render() {
         return html`
             <div class=" bg-white border-solid">
-                <main class="max-w-6xl mx-auto px-4 py-8">
+                <main class="max-w-4xl mx-auto px-4 py-8">
                     <div class="bg-[#012939] rounded-t-xs p-6">
                         <h2 class="text-white text-4xl font-black text-center tracking-tight">
                             ${this.heading}
