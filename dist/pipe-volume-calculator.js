@@ -58,253 +58,272 @@ class CalculatorContainer extends r {
 
 customElements.define('calculator-container', CalculatorContainer);
 
-class HvacLoadCalculator extends r {
-    static styles = i$3`
-        :host {
-            font-family: 'Source Sans Pro', sans-serif;
-        }
-        ${r$3(styles)};
-    `;
+// src/pipe-volume-calculator.js
 
-    static properties = {
-        squareFootage: { type: Number },
-        ceilingHeight: { type: Number },
-        occupants: { type: Number },
-        windows: { type: Number },
-        doors: { type: Number },
-        insulation: { type: String },
+
+/**
+ * PipeVolumeCalculator
+ * A Lit-based Web Component that computes the volume of fluid within a pipe
+ * and the resulting mass of that fluid, similar in style to hvac-load-calculator.
+ */
+class PipeVolumeCalculator extends r {
+  static styles = i$3`
+    :host {
+      font-family: 'Source Sans Pro', sans-serif;
+    }
+    ${r$3(styles)};
+  `;
+
+  static properties = {
+    // Form inputs
+    diameter: { type: Number },
+    diameterUnit: { type: String },
+    length: { type: Number },
+    lengthUnit: { type: String },
+    density: { type: Number },
+    densityUnit: { type: String },
+  };
+
+  constructor() {
+    super();
+    // Default state
+    this.diameter = 0;
+    this.diameterUnit = 'in';
+    this.length = 0;
+    this.lengthUnit = 'ft';
+    this.density = 997; // default water density in kg/m³
+    this.densityUnit = 'kg/m³';
+  }
+
+  // Conversion multipliers to convert user inputs to base SI units (meters, kg/m³).
+  get lengthConversion() {
+    return {
+      m: 1,
+      cm: 0.01,
+      mm: 0.001,
+      ft: 0.3048,
+      in: 0.0254,
     };
+  }
 
-    constructor() {
-        super();
-        this.squareFootage = '';
-        this.ceilingHeight = '';
-        this.occupants = '';
-        this.windows = '';
-        this.doors = '';
-        this.insulation = 'average';
+  get densityConversion() {
+    return {
+      'kg/m³': 1,         // base
+      'lb/ft³': 16.018463 // 1 lb/ft³ = 16.018463 kg/m³
+    };
+  }
 
-        // Insulation factors mapping
-        this.insulationFactors = {
-            poor: 1.2,
-            average: 1.0,
-            good: 0.85,
-            excellent: 0.75,
-        };
+  /**
+   * Compute the pipe's internal volume (in cubic meters).
+   */
+  get volume() {
+    // Ensure values are numbers
+    const d = this.diameter || 0;
+    const L = this.length || 0;
+    const rho = this.density || 0;
+
+    // Convert all to SI (meters, kg/m³)
+    const diameterInMeters = d * (this.lengthConversion[this.diameterUnit] || 1);
+    const lengthInMeters = L * (this.lengthConversion[this.lengthUnit] || 1);
+    rho * (this.densityConversion[this.densityUnit] || 1);
+
+    // radius = diameter / 2
+    const radius = diameterInMeters / 2;
+
+    // volume (m³) = π * r² * length
+    const calcVolume = Math.PI * (radius ** 2) * lengthInMeters;
+
+    return calcVolume || 0;
+  }
+
+  /**
+   * Compute the mass of fluid in the pipe (in kg).
+   */
+  get liquidMass() {
+    // mass (kg) = volume (m³) * density (kg/m³)
+    const densityInSI = (this.density || 0) * (this.densityConversion[this.densityUnit] || 1);
+    return this.volume * densityInSI;
+  }
+
+  /**
+   * Handle updates to numeric or string fields as the user types/selects.
+   */
+  _handleInputChange(event) {
+    const target = event.target;
+    const { name, value } = target;
+
+    // If the field is numeric, parse to float or store as 0
+    if (['diameter', 'length', 'density'].includes(name)) {
+      this[name] = parseFloat(value) || 0;
+    } else {
+      // For unit selects or anything else, store as string
+      this[name] = value;
     }
+  }
 
-    /**
-     * Convert input string values to numbers for numeric fields.
-     */
-    _handleInputChange(e) {
-        const field = e.target.name;
+  render() {
+    return x`
+      <!-- Wrap everything in the same container used by hvac-load-calculator -->
+      <calculator-container heading="Pipe Volume Calculator">
+        <div class="bg-[#f3f3f3] rounded-b-xs shadow-lg p-8 border border-[#99a9b0]">
+          <div class="grid md:grid-cols-2 gap-12">
+            <!-- Left: Form Inputs -->
+            <div class="space-y-6">
 
-        if (field === 'insulation') {
-            this.insulation = e.target.value;
-        } else {
-            this[field] = Number(e.target.value);
-        }
-    }
-
-    /**
-     * Getter that calculates the total BTU load based on current property values.
-     */
-    get totalBTU() {
-        const factor = this.insulationFactors[this.insulation] ?? 1;
-
-        // Base load calculation
-        let rawBTU = (this.squareFootage * this.ceilingHeight)
-                             + (this.occupants * 100)
-                             + (this.windows * 1000)
-                             + (this.doors * 1000);
-
-        // Apply insulation factor, then round
-        return Math.round(rawBTU * factor);
-    }
-
-    /**
-     * Getter to derive tonnage from total BTU (12,000 BTU = 1 ton).
-     */
-    get hvacTonnage() {
-        return this.totalBTU > 0
-            ? (this.totalBTU / 12000).toFixed(2)
-            : 'N/A';
-    }
-
-    render() {
-        return x`
-            <calculator-container heading="Simple HVAC Load Calculator">
-                <div class="bg-[#f3f3f3] rounded-b-xs shadow-lg p-8 border border-[#99a9b0]">
-                    <div class="grid md:grid-cols-2 gap-12">
-                        <!-- Calculator Form Fields -->
-                        <div class="space-y-6">
-
-                            <div class="space-y-2">
-                                <label class="flex items-center text-dark-blue font-medium">
-                                    Total Square Footage:
-                                </label>
-                                <div class="flex items-center bg-white rounded-sm border p-2">
-                                    <span class="pl-2">ft²</span>
-                                    <input
-                                        type="number"
-                                        name="squareFootage"
-                                        .value="${this.squareFootage}"
-                                        @input="${this._handleInputChange}"
-                                        class="w-full pl-3 pr-4 py-2 focus:outline-none focus:ring-0"
-                                        placeholder="0"
-                                    />
-                                </div>
-                            </div>
-
-                            <div class="space-y-2">
-                                <label class="flex items-center text-dark-blue font-medium">
-                                    Ceiling Height:
-                                </label>
-                                <div class="flex items-center bg-white rounded-sm border p-2">
-                                    <span class="pl-2">ft</span>
-                                    <input
-                                        type="number"
-                                        name="ceilingHeight"
-                                        .value="${this.ceilingHeight}"
-                                        @input="${this._handleInputChange}"
-                                        class="w-full pl-3 pr-4 py-2 focus:outline-none focus:ring-0"
-                                        placeholder="0"
-                                    />
-                                </div>
-                            </div>
-
-                            <div class="space-y-2">
-                                <label class="flex items-center text-dark-blue font-medium">
-                                    Number of Occupants:
-                                </label>
-                                <input
-                                    type="number"
-                                    name="occupants"
-                                    .value="${this.occupants}"
-                                    @input="${this._handleInputChange}"
-                                    class="w-full px-4 py-4 bg-white border rounded-sm"
-                                    placeholder="0"
-                                />
-                            </div>
-
-                            <div class="space-y-2">
-                                <label class="flex items-center text-dark-blue font-medium">
-                                    Number of Windows:
-                                </label>
-                                <input
-                                    type="number"
-                                    name="windows"
-                                    .value="${this.windows}"
-                                    @input="${this._handleInputChange}"
-                                    class="w-full px-4 py-4 bg-white border rounded-sm"
-                                    placeholder="0"
-                                />
-                            </div>
-
-                            <div class="space-y-2">
-                                <label class="flex items-center text-dark-blue font-medium">
-                                    Number of Exterior Doors:
-                                </label>
-                                <input
-                                    type="number"
-                                    name="doors"
-                                    .value="${this.doors}"
-                                    @input="${this._handleInputChange}"
-                                    class="w-full px-4 py-4 bg-white border rounded-sm"
-                                    placeholder="0"
-                                />
-                            </div>
-
-                            <div class="space-y-2">
-                                <label class="flex items-center text-dark-blue font-medium">
-                                    Insulation Level:
-                                </label>
-                                <select
-                                    name="insulation"
-                                    .value="${this.insulation}"
-                                    @change="${this._handleInputChange}"
-                                    class="w-full px-4 py-4 bg-white border rounded-sm"
-                                >
-                                    <option value="poor">Poor</option>
-                                    <option value="average">Average</option>
-                                    <option value="good">Good</option>
-                                    <option value="excellent">Excellent</option>
-                                </select>
-                            </div>
-                        </div>
-
-                        <div>
-                            <h3 class="text-dark-blue font-bold text-2xl mb-4">Total HVAC Load:</h3>
-
-                            <div class="bg-dark-blue p-8 rounded-sm">
-                                <div class="text-5xl font-black text-white mb-4">
-                                    ${
-                                        this.totalBTU > 0
-                                            ? x`
-                                                    <span>
-                                                        ${this.totalBTU.toLocaleString()}
-                                                    </span>
-                                                `
-                                            : x`<span>0</span>`
-                                    }
-                                    <span class="text-2xl"> BTU</span>
-                                    <!-- Squiggly line -->
-                                    <img src="data:image/svg+xml;charset=utf-8;base64,PHN2ZyB3aWR0aD0iMTg2IiBoZWlnaHQ9IjExIiB2aWV3Qm94PSIwIDAgMTg2IDExIiBmaWxsPSJub25lIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHByZXNlcnZlQXNwZWN0UmF0aW89J25vbmUnPgo8cGF0aCBkPSJNMy40NzU5OCA1LjU3MDQ5QzQxLjYwODUgNC41NjQyNCA3OS44MzE4IDIuNDY5NyAxMTguMDIyIDMuNzMyMThDMTM1Ljc2NyA0LjMxODc4IDE1My40ODggNC4zMDgzOSAxNzEuMjI3IDQuNjUxMTlDMTcyLjkyMyA0LjY4Mzk4IDE3OC4wNTUgNC44MDI0NCAxODAuMjYyIDQuOTY4MzVDMTgxLjIzOCA1LjA0MTY4IDE4My42OCA0LjY0NzU0IDE4My4xNTEgNS45NDkyMkMxODMuMDU5IDYuMTc3ODggMTc0LjQwMSA4LjA3MDg3IDE3NS41MjMgOC4wMjE4NyIgc3Ryb2tlPSIjODRFQTAwIiBzdHJva2Utd2lkdGg9IjUiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPgo8L3N2Zz4K" />
-                                </div>
-
-                                <h3 class="text-white text-xl mb-2">Recommended HVAC Size:</h3>
-                                <div class="text-3xl font-black text-white">
-                                    ${
-                                        this.totalBTU > 0 && this.hvacTonnage !== 'N/A'
-                                            ? `${this.hvacTonnage} tons`
-                                            : 'N/A'
-                                    }
-                                </div>
-                            </div>
-                        </div>
-
-                    </div>
+              <!-- Inner Diameter -->
+              <div class="space-y-2">
+                <label class="flex items-center text-dark-blue font-medium">
+                  Inner Diameter:
+                </label>
+                <div class="flex items-center gap-2">
+                  <div class="relative w-full">
+                    <input
+                      type="number"
+                      name="diameter"
+                      .value="${this.diameter}"
+                      @input="${this._handleInputChange}"
+                      class="w-full pl-4 pr-4 py-2 border border-gray-300 rounded-sm focus:outline-none"
+                      placeholder="e.g. 15"
+                    />
+                  </div>
+                  <select
+                    name="diameterUnit"
+                    .value="${this.diameterUnit}"
+                    @change="${this._handleInputChange}"
+                    class="py-2 px-4 border border-gray-300 rounded-sm focus:outline-none"
+                  >
+                    <option value="in">in</option>
+                    <option value="ft">ft</option>
+                    <option value="mm">mm</option>
+                    <option value="cm">cm</option>
+                    <option value="m">m</option>
+                  </select>
                 </div>
+              </div>
 
-                <!-- Explanation Section -->
-                <div class="mt-8 bg-white rounded-lg shadow-lg p-8">
-                    <h2 class="text-xl font-black text-dark-blue mb-4">
-                        How This Calculation Works
-                    </h2>
-                    <div class="space-y-4 text-gray-600">
-                        <p>
-                            This tool uses a simplified version of a Manual J load calculation.
-                            We consider the following factors:
-                        </p>
-                        <ul class="list-disc list-inside space-y-2">
-                            <li>
-                                <strong>Square Footage × Ceiling Height:</strong>
-                                The total volume of the conditioned space.
-                            </li>
-                            <li>
-                                <strong>Occupants:</strong>
-                                Each occupant adds roughly 100 BTU per hour.
-                            </li>
-                            <li>
-                                <strong>Windows & Doors:</strong>
-                                Each adds roughly 1,000 BTU based on typical heat gains.
-                            </li>
-                            <li>
-                                <strong>Insulation Factor:</strong>
-                                Applied to the sum, from poor (1.2×) to excellent (0.75×).
-                            </li>
-                        </ul>
-                        <p>
-                            We then divide the total BTU requirement by 12,000 to estimate
-                            the needed HVAC tonnage. Real-world calculations would account for
-                            climate data, infiltration, solar gains, duct leaks, etc.
-                        </p>
-                    </div>
+              <!-- Length -->
+              <div class="space-y-2">
+                <label class="flex items-center text-dark-blue font-medium">
+                  Length:
+                </label>
+                <div class="flex items-center gap-2">
+                  <div class="relative w-full">
+                    <input
+                      type="number"
+                      name="length"
+                      .value="${this.length}"
+                      @input="${this._handleInputChange}"
+                      class="w-full pl-4 pr-4 py-2 border border-gray-300 rounded-sm focus:outline-none"
+                      placeholder="e.g. 6"
+                    />
+                  </div>
+                  <select
+                    name="lengthUnit"
+                    .value="${this.lengthUnit}"
+                    @change="${this._handleInputChange}"
+                    class="py-2 px-4 border border-gray-300 rounded-sm focus:outline-none"
+                  >
+                    <option value="in">in</option>
+                    <option value="ft">ft</option>
+                    <option value="mm">mm</option>
+                    <option value="cm">cm</option>
+                    <option value="m">m</option>
+                  </select>
                 </div>
-            </calculator-container>
-        `;
-    }
+              </div>
+
+              <!-- Liquid Density -->
+              <div class="space-y-2">
+                <label class="flex items-center text-dark-blue font-medium">
+                  Liquid Density:
+                </label>
+                <div class="flex items-center gap-2">
+                  <div class="relative w-full">
+                    <input
+                      type="number"
+                      name="density"
+                      .value="${this.density}"
+                      @input="${this._handleInputChange}"
+                      class="w-full pl-4 pr-4 py-2 border border-gray-300 rounded-sm focus:outline-none"
+                      placeholder="e.g. 997"
+                    />
+                  </div>
+                  <select
+                    name="densityUnit"
+                    .value="${this.densityUnit}"
+                    @change="${this._handleInputChange}"
+                    class="py-2 px-4 border border-gray-300 rounded-sm focus:outline-none"
+                  >
+                    <option value="kg/m³">kg/m³</option>
+                    <option value="lb/ft³">lb/ft³</option>
+                  </select>
+                </div>
+              </div>
+
+            </div>
+
+            <!-- Right: Results Display -->
+            <div>
+              <h3 class="text-dark-blue font-bold text-2xl mb-4">Pipe Volume:</h3>
+              <div class="bg-dark-blue p-8 rounded-sm mb-8">
+                <div class="text-5xl font-black text-white mb-4">
+                  <span>
+                    ${this.volume > 0 ? this.volume.toFixed(4) : '0.0000'}
+                  </span>
+                  <span class="text-2xl"> m³</span>
+                </div>
+              </div>
+
+              <h3 class="text-dark-blue font-bold text-2xl mb-4">Liquid Mass:</h3>
+              <div class="bg-dark-blue p-8 rounded-sm">
+                <div class="text-5xl font-black text-white">
+                  <span>
+                    ${this.liquidMass > 0 ? this.liquidMass.toFixed(2) : '0.00'}
+                  </span>
+                  <span class="text-2xl"> kg</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Explanation Section -->
+        <div class="mt-8 bg-white rounded-lg shadow-lg p-8">
+          <h2 class="text-xl font-black text-dark-blue mb-4">
+            About the Pipe Volume Calculation
+          </h2>
+          <div class="space-y-4 text-gray-600">
+            <p>
+              This tool calculates the volume of a pipe (assumed to be a right circular cylinder)
+              using the formula:
+            </p>
+            <div class="bg-[#F7F7F7] p-4 rounded-lg">
+              <p class="font-mono">
+                volume = π × (diameter/2)² × length
+              </p>
+            </div>
+            <p>
+              The <strong>liquid mass</strong> is then derived from:
+            </p>
+            <div class="bg-[#F7F7F7] p-4 rounded-lg">
+              <p class="font-mono">
+                liquid mass = volume × density
+              </p>
+            </div>
+            <p>
+              By default, the density is set to water (997 kg/m³), but you can change it for any
+              other fluid by specifying its density. Use the unit dropdowns to seamlessly switch
+              between metric and imperial measurements.
+            </p>
+          </div>
+        </div>
+      </calculator-container>
+    `;
+  }
 }
 
-customElements.define('hvac-load-calculator', HvacLoadCalculator);
-//# sourceMappingURL=hvac-load-calculator.js.map
+// Register the custom element
+customElements.define('pipe-volume-calculator', PipeVolumeCalculator);
+
+export { PipeVolumeCalculator };
+//# sourceMappingURL=pipe-volume-calculator.js.map

@@ -58,253 +58,211 @@ class CalculatorContainer extends r {
 
 customElements.define('calculator-container', CalculatorContainer);
 
-class HvacLoadCalculator extends r {
-    static styles = i$3`
-        :host {
-            font-family: 'Source Sans Pro', sans-serif;
-        }
-        ${r$3(styles)};
+// FILE: /src/duct-calculator.js
+
+/**
+ * A simple duct sizing calculator in the same style as hvac-load-calculator.js.
+ * Automatically updates results whenever inputs change (no "Calculate" button needed).
+ */
+class DuctCalculator extends r {
+  static styles = i$3`
+    :host {
+      font-family: 'Source Sans Pro', sans-serif;
+    }
+    ${r$3(styles)};
+  `;
+
+  static properties = {
+    // Example properties you might need for a duct sizing approach:
+    availableStaticPressure: { type: Number }, // (in.wc)
+    totalEffectiveLength: { type: Number },    // (ft)
+    systemCFM: { type: Number },              // total airflow in CFM
+    frictionRate: { type: Number },           // (in.wc per 100 ft)
+  };
+
+  constructor() {
+    super();
+    // Default example values
+    this.availableStaticPressure = 0.5;
+    this.totalEffectiveLength = 150;
+    this.systemCFM = 800;
+    this.frictionRate = 0.05; // typical default friction rate
+  }
+
+  /**
+   * Handle input changes, converting numeric fields to numbers so we can do math right away.
+   */
+  _handleInputChange(e) {
+    const field = e.target.name;
+    this[field] = Number(e.target.value);
+  }
+
+  /**
+   * Demonstration: automatically compute friction rate if we have data for ASP and TEL.
+   * If you want the user to enter frictionRate directly, you can skip computing it here.
+   *
+   * This example simply re-derives frictionRate from the formula:
+   *   frictionRate = (availableStaticPressure * 100) / totalEffectiveLength
+   * ... if you want that dynamic. If you'd rather let frictionRate be user input,
+   * remove or adjust this logic.
+   */
+  get computedFrictionRate() {
+    if (this.totalEffectiveLength > 0) {
+      return ((this.availableStaticPressure * 100) / this.totalEffectiveLength).toFixed(3);
+    }
+    return 0;
+  }
+
+  /**
+   * Example placeholder formula for recommended round duct diameter given a desired CFM
+   * and friction approach. Real calculations are more nuanced. Adjust as needed.
+   *
+   * For example, a simplified approach might be:
+   *   diameter = sqrt( (4 * systemCFM) / (π * velocity) )
+   *   where velocity is derived from friction or a standard velocity chart.
+   */
+  get recommendedDiameter() {
+    // We’ll do a simple, contrived formula just to show the result changes:
+    // e.g. recommended diameter might scale with sqrt(CFM).
+    if (this.systemCFM > 0) {
+      const diameter = Math.sqrt(this.systemCFM / 10); // purely illustrative
+      return diameter.toFixed(2);
+    }
+    return 0;
+  }
+
+  render() {
+    return x`
+      <calculator-container heading="Simple Duct Sizing Calculator">
+        <!-- Calculator body, in the same style as hvac-load-calculator -->
+        <div class="bg-[#f3f3f3] rounded-b-xs shadow-lg p-8 border border-[#99a9b0]">
+          <div class="grid md:grid-cols-2 gap-12">
+            <!-- Left Side: Input fields -->
+            <div class="space-y-6">
+
+              <!-- Available Static Pressure -->
+              <div class="space-y-2">
+                <label class="flex items-center text-dark-blue font-medium">
+                  Available Static Pressure (in.wc):
+                </label>
+                <input
+                  type="number"
+                  step="0.01"
+                  name="availableStaticPressure"
+                  .value="${this.availableStaticPressure}"
+                  @input="${this._handleInputChange}"
+                  class="w-full px-4 py-4 bg-white border rounded-sm"
+                />
+              </div>
+
+              <!-- Total Effective Length -->
+              <div class="space-y-2">
+                <label class="flex items-center text-dark-blue font-medium">
+                  Total Effective Length (ft):
+                </label>
+                <input
+                  type="number"
+                  name="totalEffectiveLength"
+                  .value="${this.totalEffectiveLength}"
+                  @input="${this._handleInputChange}"
+                  class="w-full px-4 py-4 bg-white border rounded-sm"
+                />
+              </div>
+
+              <!-- System CFM -->
+              <div class="space-y-2">
+                <label class="flex items-center text-dark-blue font-medium">
+                  System CFM:
+                </label>
+                <input
+                  type="number"
+                  name="systemCFM"
+                  .value="${this.systemCFM}"
+                  @input="${this._handleInputChange}"
+                  class="w-full px-4 py-4 bg-white border rounded-sm"
+                />
+              </div>
+
+              <!-- (Optional) Manual friction rate entry:
+                   If you'd rather let the user type this directly,
+                   un-comment and use in place of the computedFrictionRate below. -->
+
+              <div class="space-y-2">
+                <label class="flex items-center text-dark-blue font-medium">
+                  Friction Rate (in.wc per 100ft):
+                </label>
+                <input
+                  type="number"
+                  step="0.001"
+                  name="frictionRate"
+                  .value="${this.frictionRate}"
+                  @input="${this._handleInputChange}"
+                  class="w-full px-4 py-4 bg-white border rounded-sm"
+                />
+              </div>
+
+            </div>
+
+            <!-- Right Side: Results Display -->
+            <div>
+              <h3 class="text-dark-blue font-bold text-2xl mb-4">
+                Duct Calculation Results
+              </h3>
+
+              <!-- Card similar to hvac load calculator -->
+              <div class="bg-dark-blue p-8 rounded-sm">
+                <!-- Display friction rate -->
+                <div class="text-white mb-2">
+                  <span class="font-black text-xl">Friction Rate:</span>
+                  <span class="ml-2 text-3xl font-black">
+                    ${this.computedFrictionRate} <span class="text-base">in.wc/100ft</span>
+                  </span>
+                </div>
+                <!-- Display recommended diameter (placeholder formula) -->
+                <div class="text-white mt-4">
+                  <span class="font-black text-xl">Recommended Duct Diameter:</span>
+                  <div class="text-4xl font-black mt-2">
+                    ${this.recommendedDiameter}"
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Explanation Section -->
+        <div class="mt-8 bg-white rounded-lg shadow-lg p-8">
+          <h2 class="text-xl font-black text-dark-blue mb-4">
+            How This Calculation Works
+          </h2>
+          <div class="space-y-4 text-gray-600">
+            <p>
+              This tool provides a rough duct sizing approach based on total
+              effective length, available static pressure, and CFM.
+            </p>
+            <ul class="list-disc list-inside space-y-2">
+              <li>
+                <strong>Friction Rate:</strong> Computed as
+                <em>(Available Static Pressure × 100) ÷ TEL</em> to show how
+                much static pressure drop is allowed per 100 feet of duct.
+              </li>
+              <li>
+                <strong>Recommended Diameter:</strong> Example placeholder formula
+                to give a rough idea of duct size for the system CFM.
+              </li>
+            </ul>
+            <p>
+              For real-world accuracy, always refer to
+              <em>ACCA Manual D</em> or other official guidelines, factoring
+              in fittings, material type, velocity, and pressure drops through
+              filters, coils, etc.
+            </p>
+          </div>
+        </div>
+      </calculator-container>
     `;
-
-    static properties = {
-        squareFootage: { type: Number },
-        ceilingHeight: { type: Number },
-        occupants: { type: Number },
-        windows: { type: Number },
-        doors: { type: Number },
-        insulation: { type: String },
-    };
-
-    constructor() {
-        super();
-        this.squareFootage = '';
-        this.ceilingHeight = '';
-        this.occupants = '';
-        this.windows = '';
-        this.doors = '';
-        this.insulation = 'average';
-
-        // Insulation factors mapping
-        this.insulationFactors = {
-            poor: 1.2,
-            average: 1.0,
-            good: 0.85,
-            excellent: 0.75,
-        };
-    }
-
-    /**
-     * Convert input string values to numbers for numeric fields.
-     */
-    _handleInputChange(e) {
-        const field = e.target.name;
-
-        if (field === 'insulation') {
-            this.insulation = e.target.value;
-        } else {
-            this[field] = Number(e.target.value);
-        }
-    }
-
-    /**
-     * Getter that calculates the total BTU load based on current property values.
-     */
-    get totalBTU() {
-        const factor = this.insulationFactors[this.insulation] ?? 1;
-
-        // Base load calculation
-        let rawBTU = (this.squareFootage * this.ceilingHeight)
-                             + (this.occupants * 100)
-                             + (this.windows * 1000)
-                             + (this.doors * 1000);
-
-        // Apply insulation factor, then round
-        return Math.round(rawBTU * factor);
-    }
-
-    /**
-     * Getter to derive tonnage from total BTU (12,000 BTU = 1 ton).
-     */
-    get hvacTonnage() {
-        return this.totalBTU > 0
-            ? (this.totalBTU / 12000).toFixed(2)
-            : 'N/A';
-    }
-
-    render() {
-        return x`
-            <calculator-container heading="Simple HVAC Load Calculator">
-                <div class="bg-[#f3f3f3] rounded-b-xs shadow-lg p-8 border border-[#99a9b0]">
-                    <div class="grid md:grid-cols-2 gap-12">
-                        <!-- Calculator Form Fields -->
-                        <div class="space-y-6">
-
-                            <div class="space-y-2">
-                                <label class="flex items-center text-dark-blue font-medium">
-                                    Total Square Footage:
-                                </label>
-                                <div class="flex items-center bg-white rounded-sm border p-2">
-                                    <span class="pl-2">ft²</span>
-                                    <input
-                                        type="number"
-                                        name="squareFootage"
-                                        .value="${this.squareFootage}"
-                                        @input="${this._handleInputChange}"
-                                        class="w-full pl-3 pr-4 py-2 focus:outline-none focus:ring-0"
-                                        placeholder="0"
-                                    />
-                                </div>
-                            </div>
-
-                            <div class="space-y-2">
-                                <label class="flex items-center text-dark-blue font-medium">
-                                    Ceiling Height:
-                                </label>
-                                <div class="flex items-center bg-white rounded-sm border p-2">
-                                    <span class="pl-2">ft</span>
-                                    <input
-                                        type="number"
-                                        name="ceilingHeight"
-                                        .value="${this.ceilingHeight}"
-                                        @input="${this._handleInputChange}"
-                                        class="w-full pl-3 pr-4 py-2 focus:outline-none focus:ring-0"
-                                        placeholder="0"
-                                    />
-                                </div>
-                            </div>
-
-                            <div class="space-y-2">
-                                <label class="flex items-center text-dark-blue font-medium">
-                                    Number of Occupants:
-                                </label>
-                                <input
-                                    type="number"
-                                    name="occupants"
-                                    .value="${this.occupants}"
-                                    @input="${this._handleInputChange}"
-                                    class="w-full px-4 py-4 bg-white border rounded-sm"
-                                    placeholder="0"
-                                />
-                            </div>
-
-                            <div class="space-y-2">
-                                <label class="flex items-center text-dark-blue font-medium">
-                                    Number of Windows:
-                                </label>
-                                <input
-                                    type="number"
-                                    name="windows"
-                                    .value="${this.windows}"
-                                    @input="${this._handleInputChange}"
-                                    class="w-full px-4 py-4 bg-white border rounded-sm"
-                                    placeholder="0"
-                                />
-                            </div>
-
-                            <div class="space-y-2">
-                                <label class="flex items-center text-dark-blue font-medium">
-                                    Number of Exterior Doors:
-                                </label>
-                                <input
-                                    type="number"
-                                    name="doors"
-                                    .value="${this.doors}"
-                                    @input="${this._handleInputChange}"
-                                    class="w-full px-4 py-4 bg-white border rounded-sm"
-                                    placeholder="0"
-                                />
-                            </div>
-
-                            <div class="space-y-2">
-                                <label class="flex items-center text-dark-blue font-medium">
-                                    Insulation Level:
-                                </label>
-                                <select
-                                    name="insulation"
-                                    .value="${this.insulation}"
-                                    @change="${this._handleInputChange}"
-                                    class="w-full px-4 py-4 bg-white border rounded-sm"
-                                >
-                                    <option value="poor">Poor</option>
-                                    <option value="average">Average</option>
-                                    <option value="good">Good</option>
-                                    <option value="excellent">Excellent</option>
-                                </select>
-                            </div>
-                        </div>
-
-                        <div>
-                            <h3 class="text-dark-blue font-bold text-2xl mb-4">Total HVAC Load:</h3>
-
-                            <div class="bg-dark-blue p-8 rounded-sm">
-                                <div class="text-5xl font-black text-white mb-4">
-                                    ${
-                                        this.totalBTU > 0
-                                            ? x`
-                                                    <span>
-                                                        ${this.totalBTU.toLocaleString()}
-                                                    </span>
-                                                `
-                                            : x`<span>0</span>`
-                                    }
-                                    <span class="text-2xl"> BTU</span>
-                                    <!-- Squiggly line -->
-                                    <img src="data:image/svg+xml;charset=utf-8;base64,PHN2ZyB3aWR0aD0iMTg2IiBoZWlnaHQ9IjExIiB2aWV3Qm94PSIwIDAgMTg2IDExIiBmaWxsPSJub25lIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHByZXNlcnZlQXNwZWN0UmF0aW89J25vbmUnPgo8cGF0aCBkPSJNMy40NzU5OCA1LjU3MDQ5QzQxLjYwODUgNC41NjQyNCA3OS44MzE4IDIuNDY5NyAxMTguMDIyIDMuNzMyMThDMTM1Ljc2NyA0LjMxODc4IDE1My40ODggNC4zMDgzOSAxNzEuMjI3IDQuNjUxMTlDMTcyLjkyMyA0LjY4Mzk4IDE3OC4wNTUgNC44MDI0NCAxODAuMjYyIDQuOTY4MzVDMTgxLjIzOCA1LjA0MTY4IDE4My42OCA0LjY0NzU0IDE4My4xNTEgNS45NDkyMkMxODMuMDU5IDYuMTc3ODggMTc0LjQwMSA4LjA3MDg3IDE3NS41MjMgOC4wMjE4NyIgc3Ryb2tlPSIjODRFQTAwIiBzdHJva2Utd2lkdGg9IjUiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPgo8L3N2Zz4K" />
-                                </div>
-
-                                <h3 class="text-white text-xl mb-2">Recommended HVAC Size:</h3>
-                                <div class="text-3xl font-black text-white">
-                                    ${
-                                        this.totalBTU > 0 && this.hvacTonnage !== 'N/A'
-                                            ? `${this.hvacTonnage} tons`
-                                            : 'N/A'
-                                    }
-                                </div>
-                            </div>
-                        </div>
-
-                    </div>
-                </div>
-
-                <!-- Explanation Section -->
-                <div class="mt-8 bg-white rounded-lg shadow-lg p-8">
-                    <h2 class="text-xl font-black text-dark-blue mb-4">
-                        How This Calculation Works
-                    </h2>
-                    <div class="space-y-4 text-gray-600">
-                        <p>
-                            This tool uses a simplified version of a Manual J load calculation.
-                            We consider the following factors:
-                        </p>
-                        <ul class="list-disc list-inside space-y-2">
-                            <li>
-                                <strong>Square Footage × Ceiling Height:</strong>
-                                The total volume of the conditioned space.
-                            </li>
-                            <li>
-                                <strong>Occupants:</strong>
-                                Each occupant adds roughly 100 BTU per hour.
-                            </li>
-                            <li>
-                                <strong>Windows & Doors:</strong>
-                                Each adds roughly 1,000 BTU based on typical heat gains.
-                            </li>
-                            <li>
-                                <strong>Insulation Factor:</strong>
-                                Applied to the sum, from poor (1.2×) to excellent (0.75×).
-                            </li>
-                        </ul>
-                        <p>
-                            We then divide the total BTU requirement by 12,000 to estimate
-                            the needed HVAC tonnage. Real-world calculations would account for
-                            climate data, infiltration, solar gains, duct leaks, etc.
-                        </p>
-                    </div>
-                </div>
-            </calculator-container>
-        `;
-    }
+  }
 }
 
-customElements.define('hvac-load-calculator', HvacLoadCalculator);
-//# sourceMappingURL=hvac-load-calculator.js.map
+customElements.define('duct-calculator', DuctCalculator);
+//# sourceMappingURL=duct-calculator.js.map
